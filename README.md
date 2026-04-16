@@ -1,171 +1,110 @@
-# truthbrush
-Truthbrush is an API client for Truth Social.
+# Trump Truth Social Keyword Export
 
-Currently, this tool can:
+This repository includes a Python script, `fetch_trump_posts_by_keyword.py`, that exports `@realDonaldTrump` Truth Social posts for:
 
-* Search for users, statuses, groups, or hashtags
-* Pull a user's statuses
-* Pull the list of "People to Follow" or suggested users
-* Pull "trending" hashtags
-* Pull "trending" Truth posts
-* Pull ads
-* Pull a user's metadata
-* Pull the list of users who liked a post
-* Pull the list of comments on a post
-* Pull "trending" groups
-* Pull list of suggested groups
-* Pull "trending" group hashtags
-* Pull posts from group timeline
+- a UTC date range that you choose at runtime
+- a keyword that you choose at runtime
 
-Truthbrush is designed for academic research, open source intelligence gathering, and data archival. It pulls all data from the publicly accessible API.
+Matching posts are saved as text files in an `exports/` folder.
 
-## Installation
+## What this script does
 
-From PyPi:
+When you run `fetch_trump_posts_by_keyword.py`, it:
 
-```sh
-pip install truthbrush
-```
+1. Prompts for a start date, end date, and keyword.
+2. Pulls posts from `@realDonaldTrump` using the Truthbrush API client.
+3. Converts post HTML content into clean plain text.
+4. Filters posts to your requested date range and keyword.
+5. Writes one `.txt` file per match (with metadata + post text).
 
-From git:
+Each output file includes:
 
-* To install it, run `pip install git+https://github.com/stanfordio/truthbrush.git`
+- post ID
+- UTC timestamp
+- post URL
+- URI
+- cleaned post text
 
-From source:
+## How Truthbrush is used
 
-* Clone the repository and run `pip3 install .`. Provided your `pip` is setup correctly, this will make `truthbrush` available both as a command and as a Python package.
+This project uses the `truthbrush` Python package as the data access layer for Truth Social.  
+In this script, `truthbrush.Api()` is used to call `pull_statuses(...)` and page through posts from newest to oldest.
 
-After installation, you will need to set your Truth Social username and password as environmental variables.
+Truthbrush handles authentication using environment variables (or `.env`) and provides structured post data that this script filters and exports.
 
-`export TRUTHSOCIAL_USERNAME=foo`
+## Prerequisites
 
-`export TRUTHSOCIAL_PASSWORD=bar`
+- Python 3.10+
+- A Truth Social account (your own credentials are required)
 
-If you encounter login issues, you can instead extract your login token from the truth:auth Local Storage store and export it in `TRUTHSOCIAL_TOKEN`.
+## Setup
 
-You may also set these variables in a `.env` file in the directory from which you are running Truthbrush.
-
-## CLI Usage
-
-```text
-Usage: truthbrush [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --help     Show this message and exit.
-
-
-Commands:
-  search            Search for users, statuses or hashtags.
-  statuses          Pull a user's statuses.
-  suggestions       Pull the list of suggested users.
-  tags              Pull trendy tags.
-  trends            Pull trendy Truths.
-  ads               Pull ads.
-  user              Pull a user's metadata.
-  likes             Pull the list of users who liked a post
-  comments          Pull the list of oldest comments on a post
-  groupposts        Pull posts from a groups's timeline
-  grouptags         Pull trending group tags.
-  grouptrends       Pull trending groups.
-  groupsuggestions  Pull list of suggested groups.
-
-```
-
-**Search for users, statuses, groups, or hashtags**
+### 1) Clone and enter the repo
 
 ```bash
-truthbrush search --searchtype [accounts|statuses|hashtags|groups] QUERY
+git clone <your-repo-url>
+cd Truth-Social-Query
 ```
 
-**Pull all statuses (posts) from a user**
+### 2) Install dependencies
+
+Use Poetry (recommended):
 
 ```bash
-truthbrush statuses HANDLE
-```
-
-**Pull "People to Follow" (suggested) users**
-
-```bash
-truthbrush suggestions
-```
-
-**Pull trendy tags**
-
-```bash
-truthbrush tags
-```
-
-**Pull ads**
-
-```bash
-truthbrush ads
-```
-
-**Pull all of a user's metadata**
-
-```bash
-truthbrush user HANDLE
-```
-
-**Pull the list of users who liked a post**
-
-```bash
-truthbrush likes POST --includeall TOP_NUM
-```
-
-**Pull the list of oldest comments on a post**
-
-```bash
-truthbrush comments POST --includeall --onlyfirst TOP_NUM
-```
-
-**Pull trending group tags**
-
-```bash
-truthbrush grouptags
-```
-
-**Pull trending groups**
-
-```bash
-truthbrush grouptrends
-```
-
-**Pull list of suggested groups**
-
-```bash
-truthbrush groupsuggestions
-```
-
-**Pull posts from a group's timeline**
-
-```bash
-truthbrush groupposts GROUP_ID
-```
-
-## Contributing
-
-Contributions are encouraged! For small bug fixes and minor improvements, feel free to just open a PR. For larger changes, please open an issue first so that other contributors can discuss your plan, avoid duplicated work, and ensure it aligns with the goals of the project. Be sure to also follow the [code of conduct](CODE_OF_CONDUCT.md). Thanks!
-
-Development setup (ensure you have [Poetry](https://python-poetry.org/) installed):
-
-```sh
 poetry install
-poetry shell
-truthbrush --help # will use your local copy of truthbrush
 ```
 
-To run the tests:
+Or use pip:
 
-```sh
-pytest
-
-# optionally run tests with verbose logging outputs:
-pytest --log-cli-level=DEBUG -s
+```bash
+pip install -e .
 ```
 
-Please format your code with `black`:
+### 3) Update `.env` with your own credentials
 
-```sh
-black .
+Open `.env` and set both values:
+
+```env
+TRUTHSOCIAL_USERNAME=your_truthsocial_username
+TRUTHSOCIAL_PASSWORD=your_truthsocial_password
 ```
+
+Every user must provide their own Truth Social username and password in `.env` before running the script.
+
+## Run the script
+
+With Poetry:
+
+```bash
+poetry run python fetch_trump_posts_by_keyword.py
+```
+
+Without Poetry:
+
+```bash
+python fetch_trump_posts_by_keyword.py
+```
+
+You will be prompted for:
+
+- `Start date (YYYY-MM-DD, UTC)`
+- `End date (YYYY-MM-DD, UTC)`
+- `Keyword to match in post text`
+- optional output folder path (press Enter to accept default)
+
+## Output behavior
+
+- Default output folder format:
+  - `exports/trump_<start-date>_<end-date>_<keyword>/`
+- One text file is written per matching post.
+- The script prints:
+  - how many posts were scanned
+  - how many matching posts were saved
+  - the final output folder path
+
+## Notes and troubleshooting
+
+- Date inputs must use `YYYY-MM-DD`.
+- End date must be the same as or after start date.
+- If login/access fails, verify `.env` values first.
+- Paging is newest-to-oldest, so large or older ranges can take longer.
